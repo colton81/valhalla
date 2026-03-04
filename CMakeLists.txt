@@ -258,6 +258,8 @@ if(ENABLE_DATA_TOOLS)
   pkg_check_modules(GEOS REQUIRED IMPORTED_TARGET geos)
   pkg_check_modules(OPENSSL REQUIRED IMPORTED_TARGET openssl)
 endif()
+## add a utility for dumping traffic demo data, which is used by the traffic demo service and the python bindings, but is generally useful to have around for debugging and testing
+
 
 if (ENABLE_THREAD_SAFE_TILE_REF_COUNT)
  add_definitions(-DENABLE_THREAD_SAFE_TILE_REF_COUNT)
@@ -281,7 +283,10 @@ set(valhalla_programs valhalla_run_map_match valhalla_benchmark_loki valhalla_be
 set(valhalla_data_tools valhalla_build_statistics valhalla_ways_to_edges valhalla_validate_transit
   valhalla_benchmark_admins valhalla_build_connectivity	valhalla_build_tiles valhalla_build_admins
   valhalla_convert_transit valhalla_ingest_transit valhalla_query_transit valhalla_add_predicted_traffic
-  valhalla_assign_speeds valhalla_add_elevation valhalla_build_landmarks valhalla_add_landmarks)
+  valhalla_assign_speeds valhalla_add_elevation valhalla_build_landmarks valhalla_add_landmarks valhalla_traffic_demo_utils
+  valhalla_encode_flexpolyline valhalla_decode_flexpolyline
+  )
+
 
 ## Valhalla services
 set(valhalla_services valhalla_loki_worker valhalla_odin_worker valhalla_thor_worker)

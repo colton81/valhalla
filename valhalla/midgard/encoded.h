@@ -248,6 +248,7 @@ template <class container_t> container_t decode7int(const std::string& encoded) 
  */
 template <class container_t>
 std::string encode(const container_t& points, const int precision = ENCODE_PRECISION) {
+
   // a place to keep the output
   std::string output;
   // unless the shape is very course you should probably only need about 3 bytes

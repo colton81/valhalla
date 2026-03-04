@@ -62,6 +62,29 @@ void set_access_restriction_value(OSMAccessRestriction& restriction,
   restriction.set_except_destination(found_tilde);
 }
 
+uint64_t get_truck_class_mask(const std::string& value) {
+  uint64_t mask = 0;
+  for (auto token : GetTagTokens(value, ';')) {
+    boost::algorithm::trim(token);
+    boost::algorithm::to_lower(token);
+    LOG_DEBUG("Processing truck class token: {}", token);
+
+    if (token == "delivery") {
+      mask |= kTruckClassDelivery;
+    } else if (token == "goods") {
+      mask |= kTruckClassGoods;
+    } else if (token == "agricultural" || token == "agri") {
+      mask |= kTruckClassAgricultural;
+    } else if (token == "forestry") {
+      mask |= kTruckClassForestry;
+    } else if (token == "designated" || token == "yes" || token == "local") {
+      mask |= kTruckClassHgv;
+    }
+  }
+
+  return mask;
+}
+
 // This class helps to set "culdesac" labels to loop roads correctly.
 // How does it work?
 // First needs to add loop roads (that are candidates to be a "culdesac" roads) using add_candidate
@@ -997,6 +1020,47 @@ struct graph_parser {
     };
     tag_handlers_["truck_route"] = [this]() {
       way_.set_truck_route(tag_.second == "true" ? true : false);
+    };
+    tag_handlers_["hgv"] = [this]() {
+      const auto truck_class_mask = get_truck_class_mask(tag_.second);
+      if (!truck_class_mask) {
+        return;
+      }
+
+      OSMAccessRestriction restriction;
+      restriction.set_type(AccessType::kTruckClass);
+      restriction.set_modes(kTruckAccess);
+      restriction.set_value(truck_class_mask);
+      osmdata_.access_restrictions.insert(
+          AccessRestrictionsMultiMap::value_type(osmid_, restriction));
+    };
+    tag_handlers_["hgv:forward"] = [this]() {
+      const auto truck_class_mask = get_truck_class_mask(tag_.second);
+      if (!truck_class_mask) {
+        return;
+      }
+
+      OSMAccessRestriction restriction;
+      restriction.set_type(AccessType::kTruckClass);
+      restriction.set_modes(kTruckAccess);
+      restriction.set_direction(AccessRestrictionDirection::kForward);
+      restriction.set_value(truck_class_mask);
+      osmdata_.access_restrictions.insert(
+          AccessRestrictionsMultiMap::value_type(osmid_, restriction));
+    };
+    tag_handlers_["hgv:backward"] = [this]() {
+      const auto truck_class_mask = get_truck_class_mask(tag_.second);
+      if (!truck_class_mask) {
+        return;
+      }
+
+      OSMAccessRestriction restriction;
+      restriction.set_type(AccessType::kTruckClass);
+      restriction.set_modes(kTruckAccess);
+      restriction.set_direction(AccessRestrictionDirection::kBackward);
+      restriction.set_value(truck_class_mask);
+      osmdata_.access_restrictions.insert(
+          AccessRestrictionsMultiMap::value_type(osmid_, restriction));
     };
     tag_handlers_["hazmat"] = [this]() {
       OSMAccessRestriction restriction;

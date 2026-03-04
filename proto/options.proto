@@ -353,6 +353,9 @@ message Costing {
     oneof has_speed_penalty_factor {
           float speed_penalty_factor = 95;
         }
+    oneof has_truck_class {
+          uint32 truck_class = 96; // ORS-style bitmask: hgv=1, goods=2, bus=4, agricultural=8, forestry=16, delivery=32, hazmat=64
+        }
   }
 
   oneof has_options {

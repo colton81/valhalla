@@ -4,9 +4,12 @@
 #include "baldr/graphconstants.h"
 #include "baldr/nodeinfo.h"
 #include "baldr/rapidjson_utils.h"
+#include "midgard/logging.h"
 #include "proto_conversions.h"
 #include "sif/osrm_car_duration.h"
 
+#include <algorithm>
+#include <cctype>
 #ifdef INLINE_TEST
 #include "test.h"
 #include "worker.h"
@@ -99,6 +102,93 @@ constexpr ranged_default_t<float> kUseHighwaysRange{0.f, kDefaultUseHighways, 1.
 constexpr ranged_default_t<float> kTopSpeedRange{10.f, kMaxAssumedTruckSpeed, kMaxSpeedKph};
 constexpr ranged_default_t<float> kHGVNoAccessRange{0.f, kMaxPenalty, kMaxPenalty};
 constexpr ranged_default_t<float> kUseTruckRouteRange{0.f, kDefaultUseTruckRoute, 1.0f};
+
+uint32_t parse_truck_class_name(std::string token) {
+  // Trim and lowercase.
+  auto first = token.find_first_not_of(" \t\n\r\f\v");
+  if (first == std::string::npos) {
+    return 0;
+  }
+  auto last = token.find_last_not_of(" \t\n\r\f\v");
+  token = token.substr(first, last - first + 1);
+  std::transform(token.begin(), token.end(), token.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  if (token == "hgv" || token == "truck" || token == "heavy_goods_vehicle") {
+    return kTruckClassHgv;
+  }
+  if (token == "goods") {
+    return kTruckClassGoods;
+  }
+  if (token == "bus") {
+    return kTruckClassBus;
+  }
+  if (token == "agricultural" || token == "agri" || token == "agriculture") {
+    return kTruckClassAgricultural;
+  }
+  if (token == "forestry") {
+    return kTruckClassForestry;
+  }
+  if (token == "delivery") {
+    return kTruckClassDelivery;
+  }
+  if (token == "hazmat" || token == "hazardous_materials") {
+    return kTruckClassHazmat;
+  }
+
+  // Keep numeric string support for compatibility.
+  const auto parsed = try_to_int(token);
+  if (parsed && *parsed >= 0) {
+    return static_cast<uint32_t>(*parsed);
+  }
+
+  LOG_WARN("Ignoring unknown truck_class value: " + token);
+  return 0;
+}
+
+uint32_t parse_truck_class_names(const std::string& value) {
+  uint32_t mask = 0;
+  size_t start = 0;
+  while (start <= value.size()) {
+    auto end = value.find_first_of(",;|", start);
+    auto token = value.substr(start, (end == std::string::npos ? value.size() : end) - start);
+    mask |= parse_truck_class_name(token);
+    if (end == std::string::npos) {
+      break;
+    }
+    start = end + 1;
+  }
+  return mask;
+}
+
+uint32_t parse_truck_class_option(const rapidjson::Value& json, uint32_t fallback) {
+  const auto* truck_class_value = rapidjson::Pointer("/truck_class").Get(json);
+  if (!truck_class_value) {
+    return fallback;
+  }
+
+  if (truck_class_value->IsString()) {
+    return parse_truck_class_names(truck_class_value->GetString());
+  }
+
+  if (truck_class_value->IsArray()) {
+    uint32_t mask = 0;
+    for (const auto& entry : truck_class_value->GetArray()) {
+      if (entry.IsString()) {
+        mask |= parse_truck_class_names(entry.GetString());
+      } else if (entry.IsNumber() || entry.IsBool()) {
+        // This matches rapidjson::get<uint32_t> behavior for numeric inputs.
+        mask |= rapidjson::get<uint32_t>(entry, "", 0);
+      } else {
+        LOG_WARN("Ignoring non-string, non-numeric truck_class array entry");
+      }
+    }
+    return mask;
+  }
+
+  // Numeric bitmask path (original behavior).
+  return rapidjson::get<uint32_t>(json, "/truck_class", fallback);
+}
 
 BaseCostingOptionsConfig GetBaseCostOptsConfig() {
   BaseCostingOptionsConfig cfg{};
@@ -332,6 +422,8 @@ public:
 
   // determine if we should allow hgv=no edges and penalize them instead
   float no_hgv_access_penalty_;
+
+  uint32_t truck_class_mask_;
 };
 
 // Constructor
@@ -358,7 +450,7 @@ TruckCost::TruckCost(const Costing& costing)
   width_ = costing_options.width();
   length_ = costing_options.length();
   axle_count_ = costing_options.axle_count();
-
+  truck_class_mask_ = costing_options.truck_class();
   // Create speed cost table
   // Preference to use highways. Is a value from 0 to 1
   // Factor for highway use - use a non-linear factor with values at 0.5 being neutral (factor
@@ -441,7 +533,17 @@ bool TruckCost::ModeSpecificAllowed(const baldr::AccessRestriction& restriction)
         return false;
       }
       break;
+    case AccessType::kTruckClass:
+
+      if ((truck_class_mask_ & static_cast<uint32_t>(restriction.value())) == 0) {
+        LOG_DEBUG("Restriction failed: truck class mask {} does not match restriction value {}",
+                  truck_class_mask_, restriction.value());
+        return false;
+      }
+      break;
     default:
+      LOG_WARN("Unknown access restriction type: " +
+               std::to_string(static_cast<int>(restriction.type())));
       return true;
   };
   return true;
@@ -748,6 +850,8 @@ void ParseTruckCostOptions(const rapidjson::Document& doc,
   JSON_PBF_RANGED_DEFAULT(co, kHGVNoAccessRange, json, "/hgv_no_access_penalty",
                           hgv_no_access_penalty);
   JSON_PBF_RANGED_DEFAULT_V2(co, kUseTruckRouteRange, json, "/use_truck_route", use_truck_route);
+  const auto existing_truck_class = co->has_truck_class() ? co->truck_class() : 0;
+  co->set_truck_class(parse_truck_class_option(json, existing_truck_class));
 }
 
 cost_ptr_t CreateTruckCost(const Costing& costing_options) {

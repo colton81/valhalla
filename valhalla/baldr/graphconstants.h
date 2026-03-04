@@ -757,7 +757,17 @@ enum class AccessType : uint8_t {
   kTimedDenied = 7,
   kDestinationAllowed = 8,
   kMaxAxles = 9,
+  kTruckClass = 10
 };
+
+// Truck class bitmask values. These follow the ORS bit convention.
+constexpr uint32_t kTruckClassHgv = 1;
+constexpr uint32_t kTruckClassGoods = 2;
+constexpr uint32_t kTruckClassBus = 4;
+constexpr uint32_t kTruckClassAgricultural = 8;
+constexpr uint32_t kTruckClassForestry = 16;
+constexpr uint32_t kTruckClassDelivery = 32;
+constexpr uint32_t kTruckClassHazmat = 64;
 
 constexpr unsigned int kHazmatMask = 1;
 constexpr unsigned int kMaxHeightMask = 2;
@@ -766,7 +776,7 @@ constexpr unsigned int kMaxLengthMask = 8;
 constexpr unsigned int kMaxWeightMask = 16;
 constexpr unsigned int kMaxAxleLoadMask = 32;
 constexpr unsigned int kMaxAxlesMask = 64;
-
+constexpr unsigned int kTruckClassMask = 128;
 // convert between the enum value and the corresponding mask
 constexpr std::array<uint8_t, 32> populate_access_restriction_masks() {
   std::array<uint8_t, 32> masks{};
@@ -781,6 +791,7 @@ constexpr std::array<uint8_t, 32> populate_access_restriction_masks() {
   masks[4] = kMaxWeightMask;
   masks[5] = kMaxAxleLoadMask;
   masks[9] = kMaxAxlesMask;
+  masks[10] = kTruckClassMask;
 
   return masks;
 }
