@@ -72,9 +72,9 @@ constexpr float kMinNonTruckRouteFactor = 1.0f;
 constexpr float kHighwayFactor[] = {
     1.0f, // Motorway
     0.5f, // Trunk
-    0.0f, // Primary
-    0.0f, // Secondary
-    0.0f, // Tertiary
+    0.4f, // Primary
+    0.3f, // Secondary
+    0.1f, // Tertiary
     0.0f, // Unclassified
     0.0f, // Residential
     0.0f  // Service, other
@@ -576,7 +576,8 @@ Cost TruckCost::TransitionCost(const baldr::DirectedEdge* edge,
 
   // Penalty to transition onto low class roads.
   if (edge->classification() == baldr::RoadClass::kResidential ||
-      edge->classification() == baldr::RoadClass::kServiceOther) {
+      edge->classification() == baldr::RoadClass::kServiceOther ||
+      edge->classification() == baldr::RoadClass::kUnclassified) {
     c.cost += low_class_penalty_;
   }
 
@@ -656,7 +657,8 @@ Cost TruckCost::TransitionCostReverse(const uint32_t idx,
 
   // Penalty to transition onto low class roads.
   if (edge->classification() == baldr::RoadClass::kResidential ||
-      edge->classification() == baldr::RoadClass::kServiceOther) {
+      edge->classification() == baldr::RoadClass::kServiceOther ||
+      edge->classification() == baldr::RoadClass::kUnclassified) {
     c.cost += low_class_penalty_;
   }
 
@@ -768,7 +770,7 @@ namespace {
 
 class TestTruckCost : public TruckCost {
 public:
-  TestTruckCost(const Costing& costing_options) : TruckCost(costing_options){};
+  TestTruckCost(const Costing& costing_options) : TruckCost(costing_options) {};
 
   using TruckCost::alley_penalty_;
   using TruckCost::country_crossing_cost_;

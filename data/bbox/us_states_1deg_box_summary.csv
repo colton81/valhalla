@@ -1,0 +1,51 @@
+state_name,state_abbr,state_fips,box_count
+Alabama,AL,01,24
+Alaska,AK,02,423
+Arizona,AZ,04,40
+Arkansas,AR,05,22
+California,CA,06,69
+Colorado,CO,08,46
+Connecticut,CT,09,7
+Delaware,DE,10,2
+Florida,FL,12,28
+Georgia,GA,13,27
+Hawaii,HI,15,24
+Idaho,ID,16,42
+Illinois,IL,17,27
+Indiana,IN,18,21
+Iowa,IA,19,26
+Kansas,KS,20,44
+Kentucky,KY,21,23
+Louisiana,LA,22,28
+Maine,ME,23,22
+Maryland,MD,24,10
+Massachusetts,MA,25,8
+Michigan,MI,26,37
+Minnesota,MN,27,45
+Mississippi,MS,28,20
+Missouri,MO,29,30
+Montana,MT,30,64
+Nebraska,NE,31,31
+Nevada,NV,32,39
+New Hampshire,NH,33,10
+New Jersey,NJ,34,9
+New Mexico,NM,35,44
+New York,NY,36,32
+North Carolina,NC,37,27
+North Dakota,ND,38,37
+Ohio,OH,39,19
+Oklahoma,OK,40,32
+Oregon,OR,41,47
+Pennsylvania,PA,42,25
+Rhode Island,RI,44,2
+South Carolina,SC,45,18
+South Dakota,SD,46,34
+Tennessee,TN,47,25
+Texas,TX,48,92
+Utah,UT,49,34
+Vermont,VT,50,10
+Virginia,VA,51,24
+Washington,WA,53,39
+West Virginia,WV,54,16
+Wisconsin,WI,55,29
+Wyoming,WY,56,46
